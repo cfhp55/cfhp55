@@ -1,0 +1,5 @@
+<Simulation version="3.6.2">
+   <XMLScript Type="XMLScript">Simulation/NecroticCore.xml</XMLScript>
+   <PythonScript Type="PythonScript">Simulation/NecroticCore.py</PythonScript>
+   <Resource Type="Python">Simulation/NecroticCoreSteppables.py</Resource>
+</Simulation>

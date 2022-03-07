@@ -1,0 +1,282 @@
+<CompuCell3D Revision="20171121" Version="3.7.7">
+    
+    
+   <Metadata>
+       <NumberOfProcessors>8</NumberOfProcessors>
+	<RandomSeed>157373</RandomSeed>
+   </Metadata>
+    
+   <Potts>
+      
+      <!-- Basic properties of CPM (GGH) algorithm -->
+      <Dimensions x="200" y="200" z="1"/>
+      <Steps>100000</Steps>
+      <Temperature>50</Temperature>
+      <NeighborOrder>3</NeighborOrder>
+      <Boundary_x>Periodic</Boundary_x>
+      <Boundary_y>Periodic</Boundary_y>
+   </Potts>
+   
+   <Plugin Name="CellType">
+      
+      <!-- Listing all cell types in the simulation -->
+      <CellType TypeId="0" TypeName="Medium"/>
+      <CellType TypeId="1" TypeName="PCancer"/>
+      <CellType TypeId="2" TypeName="QCancer"/>
+      <CellType TypeId="3" TypeName="Necrotic"/>
+      <CellType TypeId="4" TypeName="PStem"/>
+      <CellType TypeId="5" TypeName="QStem"/>
+   </Plugin>
+   
+   <Plugin Name="Volume"/>
+   
+   <Plugin Name="Surface"/>
+   
+   <Plugin Name="CenterOfMass">
+      
+      <!-- Module tracking center of mass of each cell -->
+   </Plugin>
+   
+   <Plugin Name="PixelTracker">
+      
+      <!-- Module tracking pixels of each cell -->
+   </Plugin>
+
+   <Plugin Name="Contact">
+      <!-- Specification of adhesion energies -->
+      <Energy Type1="Medium" Type2="Medium">0.0</Energy>
+      <Energy Type1="Medium" Type2="PCancer">10.0</Energy>
+      <Energy Type1="Medium" Type2="QCancer">10.0</Energy>
+      <Energy Type1="Medium" Type2="Necrotic">20.0</Energy>
+      <Energy Type1="Medium" Type2="PStem">10.0</Energy>
+      <Energy Type1="Medium" Type2="QStem">10.0</Energy>
+      
+      <Energy Type1="PCancer" Type2="PCancer">2.0</Energy>
+      <Energy Type1="PCancer" Type2="QCancer">10.0</Energy>
+      <Energy Type1="PCancer" Type2="Necrotic">10.0</Energy>
+      <Energy Type1="PCancer" Type2="PStem">10.0</Energy>
+      <Energy Type1="PCancer" Type2="QStem">10.0</Energy>
+      
+      <Energy Type1="QCancer" Type2="QCancer">2.0</Energy>
+      <Energy Type1="QCancer" Type2="Necrotic">10.0</Energy>
+      <Energy Type1="QCancer" Type2="PStem">10.0</Energy>
+      <Energy Type1="QCancer" Type2="QStem">10.0</Energy>
+      
+      <Energy Type1="Necrotic" Type2="Necrotic">2.0</Energy>
+      <Energy Type1="Necrotic" Type2="PStem">10.0</Energy>
+      <Energy Type1="Necrotic" Type2="QStem">10.0</Energy>
+      
+      <Energy Type1="PStem" Type2="PStem">2.0</Energy>
+      <Energy Type1="PStem" Type2="QStem">10.0</Energy>
+      
+      <Energy Type1="QStem" Type2="QStem">2.0</Energy>
+      <NeighborOrder>5</NeighborOrder>
+   </Plugin>
+  
+   
+   <Plugin Name="Chemotaxis"> 
+      
+      <!-- You may repeat ChemicalField element for each chemical field declared in the PDE solvers -->
+      <!-- Specification of chemotaxis properties of select cell types. -->
+      <ChemicalField Name="fiber" Source="ReactionDiffusionSolverFE">
+         <ChemotaxisByType Lambda="500.0" Type="PCancer"/>
+         <ChemotaxisByType Lambda="500.0" Type="QCancer"/>  
+         <ChemotaxisByType Lambda="500.0" Type="PStem"/>  
+         <ChemotaxisByType Lambda="500.0" Type="QStem"/>  
+      </ChemicalField>
+      
+      <ChemicalField Name="fiber_cl" Source="ReactionDiffusionSolverFE">
+         <ChemotaxisByType Lambda="1000.0" Type="PCancer"/>
+         <ChemotaxisByType Lambda="1000.0" Type="QCancer"/>  
+         <ChemotaxisByType Lambda="1000.0" Type="PStem"/>  
+         <ChemotaxisByType Lambda="1000.0" Type="QStem"/>    
+      </ChemicalField>
+   </Plugin>
+   
+   <Plugin Name="Secretion">   
+       <Field Name="LOX">
+       </Field>
+       
+       <Field Name="MMP">
+        </Field> 
+    </Plugin>  
+   <Steppable Type="ReactionDiffusionSolverFE">
+       <!--AutoscaleDiffusion/-->
+      <!-- Specification of PDE solvers -->
+      <DiffusionField Name="fiber">
+         <!--AutoscaleDiffusion/-->
+         <DiffusionData>
+            <FieldName>fiber</FieldName>
+            <DiffusionConstant>0</DiffusionConstant>       
+            <ExtraTimesPerMCS>175</ExtraTimesPerMCS>  
+<!--      <AdditionalTerm>-7.50E-03*MMP*fiber-1.35E-02*LOX*fiber+1.13E-04*(1- fiber-fiber_cl-(CellType==1 ? 1: 0))</AdditionalTerm> -->
+            <AdditionalTerm>
+            <![CDATA[
+            -7.50E-03*MMP*fiber-1.35E-02*LOX*fiber+1.13E-05*(1- fiber-fiber_cl-(CellType>1 ? 1: 0))
+            ]]></AdditionalTerm>
+
+            <!-- Additional options are: -->
+            <!--<DoNotDiffuseTo>cell</DoNotDiffuseTo>-->
+            <!--<DoNotDecayIn>Medium</DoNotDecayIn> -->
+            <!--<InitialConcentrationExpression>1*1</InitialConcentrationExpression> -->
+            <!-- <ConcentrationFileName>INITIAL CONCENTRATION FIELD - typically a file with path Simulation/NAME_OF_THE_FILE.txt</ConcentrationFileName> -->
+            <!-- To run solver for large diffusion constants you typically call solver multiple times - ExtraTimesPerMCS to specify additional calls to the solver in each MCS  -->
+            <!-- IMPORTANT: make sure not to mix this setting with the PDESolverCaller module! See manual for more information -->
+            <!-- <ExtraTimesPerMCS>0</ExtraTimesPerMCS> -->
+            <!-- <DeltaX>1.0</DeltaX> -->
+            <!-- <DeltaT>1.0</DeltaT> -->
+         </DiffusionData>
+         
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Max" Value="1.0"/>
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantDerivative PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+            <Plane Axis="Y">
+               <ConstantValue PlanePosition="Min" Value="1.0"/>
+               <ConstantValue PlanePosition="Max" Value="1.0"/>
+               <!-- Other options are (examples): -->
+               <!-- <Periodic/> -->
+               <!-- <ConstantValue PlanePosition="Min" Value="10.0"/> -->
+            </Plane>
+         </BoundaryConditions>
+         
+      </DiffusionField>
+      
+      <DiffusionField Name="fiber_cl">
+         <DiffusionData>
+            <FieldName>fiber_cl</FieldName>
+            <DiffusionConstant>0</DiffusionConstant>
+            <DecayConstant>0</DecayConstant>
+            <ExtraTimesPerMCS>175</ExtraTimesPerMCS>
+            <AdditionalTerm>-7.50E-03*MMP*fiber_cl+1.35E-02*LOX*fiber</AdditionalTerm>
+         </DiffusionData>
+              
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+            <Plane Axis="Y">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      
+      <DiffusionField Name="MMP">
+         <DiffusionData>
+            <FieldName>MMP</FieldName>
+            <DiffusionConstant>21.6</DiffusionConstant>
+            <ExtraTimesPerMCS>175</ExtraTimesPerMCS>
+            <AdditionalTerm><![CDATA[
+            -7.50E-07*MMP+(CellType>1 ? 7.50E-05: 0)
+            ]]></AdditionalTerm>
+         </DiffusionData>
+         
+         
+         <SecretionData>
+            <Secretion Type="PCancer">0.1</Secretion>
+            <SecretionOnContact SecreteOnContactWith="Medium" Type="PCancer">1</SecretionOnContact>
+            <ConstantConcentration Type="PCancer">0.5</ConstantConcentration>
+            <Secretion Type="PStem">0.1</Secretion>
+            <SecretionOnContact SecreteOnContactWith="Medium" Type="PStem">1</SecretionOnContact>
+            <ConstantConcentration Type="PStem">0.5</ConstantConcentration>
+         </SecretionData> 
+
+                     
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+            <Plane Axis="Y">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      
+      <DiffusionField Name="LOX">
+         <DiffusionData>
+            <FieldName>LOX</FieldName>
+            <DiffusionConstant>43.2</DiffusionConstant>
+            <ExtraTimesPerMCS>175</ExtraTimesPerMCS>
+            <AdditionalTerm>
+            <![CDATA[
+            -7.50E-07*LOX+(CellType>1 ? 7.50E-05: 0)
+            ]]></AdditionalTerm>
+         </DiffusionData>
+         
+         <SecretionData>
+            <Secretion Type="PCancer">0.1</Secretion>
+            <SecretionOnContact SecreteOnContactWith="Medium" Type="PCancer">1</SecretionOnContact>
+            <ConstantConcentration Type="PCancer">0.5</ConstantConcentration>
+            <Secretion Type="PStem">0.1</Secretion>
+            <SecretionOnContact SecreteOnContactWith="Medium" Type="PStem">1</SecretionOnContact>
+            <ConstantConcentration Type="PStem">0.5</ConstantConcentration>
+         </SecretionData> 
+
+              
+         <BoundaryConditions>
+            <Plane Axis="X">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+            <Plane Axis="Y">
+               <ConstantValue PlanePosition="Min" Value="0.0"/>
+               <ConstantValue PlanePosition="Max" Value="0.0"/>
+            </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      
+      
+   </Steppable>       
+   
+   <Steppable Type="SteadyStateDiffusionSolver2D">
+      
+      <!-- Specification of PDE solvers -->
+      <DiffusionField Name="Glucose">
+         <DiffusionData>
+            <FieldName>Glucose</FieldName>
+            <DiffusionConstant>1350</DiffusionConstant>
+            <DecayConstant>0.45</DecayConstant>
+
+            
+            
+         </DiffusionData>
+         <SecretionData>
+           <Uptake Type="QStem" MaxUptake="1.69" MichaelisMentenCoef="0.00256" />
+           <Uptake Type="PStem" MaxUptake="2.25" MichaelisMentenCoef="0.00256" />
+           <Uptake Type="QCancer" MaxUptake="1.69" MichaelisMentenCoef="0.00256"/> 
+           <Uptake Type="PCancer" MaxUptake="2.25" MichaelisMentenCoef="0.00256"/>
+           <Secretion Type="Medium">0.5</Secretion>
+         </SecretionData>
+         
+         <BoundaryConditions>
+                 <Plane Axis="X">
+                    <Periodic/> 
+                 </Plane>
+                 <Plane Axis="Y">
+                    <Periodic/> 
+                 </Plane>
+         </BoundaryConditions>
+      </DiffusionField>
+      
+   </Steppable>
+   
+   
+    <Steppable Type="BlobInitializer">
+        <Region>
+            <Gap>0</Gap>
+            <Width>5</Width>
+            <Radius>5</Radius>
+            <Center x="100" y="100" z="0"/>
+            <Types>QStem</Types>
+        </Region>
+    </Steppable>
+   
+</CompuCell3D>
